@@ -3,7 +3,12 @@
 <%@ Register TagPrefix="SimpleGallery" TagName="GalleryMenu" Src="Controls\GalleryMenu.ascx" %>
 <%@ Register TagPrefix="SimpleGallery" TagName="EditPhotos" Src="Controls\EditPhotos.ascx" %>
 <SimpleGallery:GalleryMenu ID="ucGalleryMenu" runat="server" ShowCommandBar="False" ShowSeparator="True" />
-
+<style>
+    .flex-container {
+        display: flex;
+        flex-wrap: wrap;
+    }
+</style>
 <div align="left">
     <table cellspacing="0" cellpadding="0" width="600" summary="Wizard Design Table">
         <tr>
@@ -80,11 +85,19 @@
         <asp:FileUpload ID="fupFile" runat="server" AllowMultiple="true" />
         <asp:Button runat="server" ID="btnUploadFiles" OnClick="btnUploadFiles_OnClick" resourcekey="btnUploadFiles" />
     </div>
-    <asp:Repeater runat="server" ID="addedPhotosRepeater" EnableViewState="True" OnItemDataBound="addedPhotosRepeater_OnItemDataBound">
-        <ItemTemplate>
-            <asp:Image runat="server" ID="addedPhoto" />
-        </ItemTemplate>
-    </asp:Repeater>
+     <div class="flex-container">
+        <asp:Repeater runat="server" ID="addedPhotosRepeater" EnableViewState="True" OnItemDataBound="addedPhotosRepeater_OnItemDataBound" OnItemCommand="addedPhotosRepeater_ItemCommand">
+            <ItemTemplate>
+                <div>
+                    <asp:Image runat="server" ID="addedPhoto" />
+                    <br />
+                    <span style="align-content: center">
+                        <asp:LinkButton ID="cmdrotate" runat="server" CssClass="CommandButton" Text="Rotate 90" BorderStyle="none" CausesValidation="false"></asp:LinkButton></span>
+                    
+                </div>
+            </ItemTemplate>
+        </asp:Repeater>
+    </div>
 </asp:Panel>
 
 <div style="width: 100%;">

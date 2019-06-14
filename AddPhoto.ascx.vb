@@ -689,9 +689,9 @@ Namespace Ventrian.SimpleGallery
 
 
                 Dim allAddedPhotos As List(Of PhotoInfo)
-                If Not IsNothing(addedPhotosRepeater.DataSource) then   
+                If Not IsNothing(addedPhotosRepeater.DataSource) Then
                     allAddedPhotos = CType(addedPhotosRepeater.DataSource, List(Of PhotoInfo))
-                Else 
+                Else
                     allAddedPhotos = New List(Of PhotoInfo)()
                 End If
 
@@ -891,7 +891,47 @@ Namespace Ventrian.SimpleGallery
                 Dim img As Image = CType(e.Item.FindControl("addedPhoto"), Image)
 
                 img.ImageUrl = Me.ResolveUrl("ImageHandler.ashx?width=" & GetPhotoWidth(e.Item.DataItem) & "&height=" & GetPhotoHeight(e.Item.DataItem) & "&HomeDirectory=" & System.Uri.EscapeDataString(DotNetNuke.Common.Globals.ApplicationPath + "/" + PortalSettings.HomeDirectory + "/" & objPhoto.HomeDirectory) & "&fileName=" & System.Uri.EscapeDataString(objPhoto.FileName) & "&portalid=" & PortalId.ToString() & "&i=" & objPhoto.PhotoID)
+
+                Dim filePath As String = GetFilePath(objPhoto.AlbumID)
+                Dim rotatelink As LinkButton = CType(e.Item.FindControl("cmdrotate"), LinkButton)
+                rotatelink.CommandArgument = objPhoto.PhotoID
             End If
+        End Sub
+
+        Protected Sub addedPhotosRepeater_ItemCommand(source As Object, e As RepeaterCommandEventArgs)
+
+            Try
+                Dim objPhoto As New PhotoInfo
+                Dim objPhotoController As New PhotoController
+                If Not (Null.IsNull(e.CommandArgument)) Then
+                    objPhoto = objPhotoController.Get(e.CommandArgument)
+                    If Not (objPhoto Is Nothing) Then
+                        Dim originalFileName As String = objPhoto.FileName
+                        Dim originalFilePath As String = GetFilePath(objPhoto.AlbumID)
+                        Dim fileExtension As String = ExtractFileExtension(originalFileName)
+                        Using photo As Drawing.Image = Drawing.Image.FromFile(originalFilePath & originalFileName)
+                            photo.RotateFlip(Drawing.RotateFlipType.Rotate90FlipNone)
+                            Select Case fileExtension.ToLower()
+                                Case "jpg", "jpeg"
+                                    photo.Save(originalFilePath & originalFileName, Drawing.Imaging.ImageFormat.Jpeg)
+                                Case "gif"
+                                    photo.Save(originalFilePath & originalFileName, Drawing.Imaging.ImageFormat.Gif)
+                                Case "png"
+                                    photo.Save(originalFilePath & originalFileName, Drawing.Imaging.ImageFormat.Png)
+                                Case "bmp"
+                                    photo.Save(originalFilePath & originalFileName, Drawing.Imaging.ImageFormat.Bmp)
+                                Case Else
+                                    photo.Save(originalFilePath & originalFileName, Drawing.Imaging.ImageFormat.Jpeg)
+                            End Select
+                            photo.Dispose()
+                        End Using
+                    End If
+                End If
+            Catch exc As Exception    'Module failed to load
+                ProcessModuleLoadException(Me, exc)
+            End Try
+
+
         End Sub
     End Class
 
