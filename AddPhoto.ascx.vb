@@ -792,7 +792,7 @@ Namespace Ventrian.SimpleGallery
                         objPhoto.ApproverID = UserId
                     End If
 
-                    objPhoto.BatchID = _batchID
+                    objPhoto.BatchID = litBatchID.Value
                     objPhoto.PhotoID = objPhotoController.Add(objPhoto)
 
                     If (objPhoto.Tags <> "") Then
