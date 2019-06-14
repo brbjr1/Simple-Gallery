@@ -707,6 +707,11 @@ Namespace Ventrian.SimpleGallery
                     Dim fileNameWithoutExtension As String = RemoveExtension(fileName).Replace("/", "_").Replace(".", "_").Replace("%", "_").Replace("+", "")
 
                     fileName = fileNameWithoutExtension & "." & fileExtension
+                    'prevent overwriting existing files
+                    If File.Exists(filePath & fileName) = True Then
+                        fileNameWithoutExtension = Guid.NewGuid.ToString()
+                        fileName = fileNameWithoutExtension & "." & fileExtension
+                    End If
 
                     objFile.SaveAs(filePath & fileName)
 
