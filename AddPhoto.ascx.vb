@@ -27,12 +27,15 @@ Namespace Ventrian.SimpleGallery
     Partial Public Class AddPhoto
         Inherits SimpleGalleryBase
 
+
+
 #Region " Private Members "
 
         Private _albumID As Integer = Null.NullInteger
         Private _selAlbumID As Integer = Null.NullInteger
         Private _returnUrl As String = Null.NullString
         Private _batchID As String = Null.NullString
+        Private _tempbatchID As String = Null.NullString
 
 #End Region
 
@@ -167,6 +170,12 @@ Namespace Ventrian.SimpleGallery
                 _batchID = Request("BatchID")
             End If
 
+            If (Request("TBatchID") <> "") Then
+                _tempbatchID = Request("TBatchID")
+            End If
+
+
+
         End Sub
 
         Private Sub SecurityCheck()
@@ -204,6 +213,33 @@ Namespace Ventrian.SimpleGallery
 
                 If (HttpContext.Current.Items("SimpleGallery-ScriptsRegistered") Is Nothing) Then
 
+
+                    'If (HttpContext.Current.Items("jquery_registered") Is Nothing) Then ' And HttpContext.Current.Items("jQueryRequested") Is Nothing And SimpleGalleryBase.GallerySettings.IncludeJQuery) Then
+
+                    'Dim litLink As New Literal
+                    'litLink.Text = "" & vbCrLf _
+                    '            & "<script type=""text/javascript"" src='/desktopmodules/simplegallery/js/compress.js'></script>" & vbCrLf
+                    'imageToolsScripts.Controls.Add(litLink)
+
+
+                    'Dim litLink2 As New Literal
+                    'litLink2.Text = "" & vbCrLf _
+                    '            & "<script type=""text/javascript"" src='https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.min.js'></script>" & vbCrLf
+                    'exifScripts.Controls.Add(litLink2)
+
+                    'Page.ClientScript.RegisterStartupScript(Me.GetType(), "VentrianGallery", litLink.Text.ToString())
+
+                    'Else
+
+                    '    Dim litLink As New Literal
+                    '    litLink.Text = "" & vbCrLf _
+                    '            & "<script type=""text/javascript"" src='" & Page.ResolveUrl(SimpleGalleryBase.GallerySettings.LightboxDefaultPath & "?v=" & SimpleGalleryBase.GallerySettings.JavascriptVersion) & "'></script>" & vbCrLf
+                    '    'Page.Header.Controls.Add(litLink)
+                    '    phjQueryScripts.Controls.Add(litLink)
+                    '    'Page.ClientScript.RegisterStartupScript(Me.GetType(), "VentrianGallery", litLink.Text.ToString())
+
+                    'End If
+
                     HttpContext.Current.Items.Add("SimpleGallery-ScriptsRegistered", "true")
 
                 End If
@@ -217,10 +253,16 @@ Namespace Ventrian.SimpleGallery
         Private Sub Page_Load(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Load
 
             Try
-
                 SecurityCheck()
                 ReadQueryString()
                 BindBreadCrumbs()
+
+                If (_tempbatchID = Null.NullString) Then
+                    litBatchID.Value = System.Guid.NewGuid().ToString()
+                    _tempbatchID = litBatchID.Value
+                Else
+                    litBatchID.Value = _tempbatchID
+                End If
 
                 If Me.GallerySettings.PhotoModeration AndAlso (Me.HasEditPermissions() Or Me.HasEditPhotoPermissions Or Me.HasApprovePhotoPermissions) = False Then
                     lblRequiresApproval.Visible = True
@@ -276,7 +318,7 @@ Namespace Ventrian.SimpleGallery
                             lblStep.Text = Localization.GetString("Step2", Me.LocalResourceFile)
                             lblStepDescription.Text = Localization.GetString("Step2Description", Me.LocalResourceFile)
 
-                            litBatchID.Value = System.Guid.NewGuid().ToString()
+                            litBatchID.Value = If(_tempbatchID = Null.NullString, System.Guid.NewGuid().ToString(), _tempbatchID)
                         Else
 
                             pnlStep1.Visible = False
@@ -314,9 +356,9 @@ Namespace Ventrian.SimpleGallery
                     If (drpAlbums.SelectedValue <> "-1" And rdoCreateNew.Checked = False) Then
 
                         If (_returnUrl <> "") Then
-                            Response.Redirect(EditUrl("AlbumID", drpAlbums.SelectedValue, "Add", "ReturnUrl=" & System.Uri.EscapeDataString(_returnUrl)), True)
+                            Response.Redirect(EditUrl("AlbumID", drpAlbums.SelectedValue, "Add", "ReturnUrl=" & System.Uri.EscapeDataString(_returnUrl), "TBatchID=" & litBatchID.Value), True)
                         Else
-                            Response.Redirect(EditUrl("AlbumID", drpAlbums.SelectedValue, "Add"), True)
+                            Response.Redirect(EditUrl("AlbumID", drpAlbums.SelectedValue, "Add", "TBatchID=" & litBatchID.Value), True)
                         End If
 
                     Else
@@ -329,6 +371,7 @@ Namespace Ventrian.SimpleGallery
                         objAlbum.Caption = txtCaption.Text
                         objAlbum.Description = txtDescription.Text
                         objAlbum.IsPublic = True
+                        objAlbum.InheritSecurity = True
                         objAlbum.HomeDirectory = GallerySettings.AlbumDefaultPath
 
                         objAlbum.AlbumID = objAlbumController.Add(objAlbum)
@@ -336,9 +379,9 @@ Namespace Ventrian.SimpleGallery
                         objAlbumController.Update(objAlbum)
 
                         If (_returnUrl <> "") Then
-                            Response.Redirect(EditUrl("AlbumID", objAlbum.AlbumID.ToString(), "Add", "ReturnUrl=" & System.Uri.EscapeDataString(_returnUrl)), True)
+                            Response.Redirect(EditUrl("AlbumID", objAlbum.AlbumID.ToString(), "Add", "ReturnUrl=" & System.Uri.EscapeDataString(_returnUrl), "TBatchID=" & litBatchID.Value), True)
                         Else
-                            Response.Redirect(EditUrl("AlbumID", objAlbum.AlbumID.ToString(), "Add"), True)
+                            Response.Redirect(EditUrl("AlbumID", objAlbum.AlbumID.ToString(), "Add", "TBatchID=" & litBatchID.Value), True)
                         End If
 
                     End If
@@ -413,11 +456,12 @@ Namespace Ventrian.SimpleGallery
 
         End Sub
 
-        Private Sub cmdNext_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cmdNext.Click, imgNext.Click
+        Private Sub cmdNext_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cmdNext.Click, imgNext.Click, cmdNext2.Click
 
             MoveNext()
 
         End Sub
+
 
         Private Sub cmdCancel_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cmdCancel.Click, imgCancel.Click
 
@@ -877,6 +921,8 @@ Namespace Ventrian.SimpleGallery
 
                 addedPhotosRepeater.DataSource = allAddedPhotos
                 addedPhotosRepeater.DataBind()
+
+                btnUploadFiles.Enabled = True
 
             Catch exc As Exception    'Module failed to load
                 Dim objEventLog As New EventLogController

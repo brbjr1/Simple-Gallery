@@ -3,12 +3,185 @@
 <%@ Register TagPrefix="SimpleGallery" TagName="GalleryMenu" Src="Controls\GalleryMenu.ascx" %>
 <%@ Register TagPrefix="SimpleGallery" TagName="EditPhotos" Src="Controls\EditPhotos.ascx" %>
 <SimpleGallery:GalleryMenu ID="ucGalleryMenu" runat="server" ShowCommandBar="False" ShowSeparator="True" />
+
+
+
+<%--<asp:PlaceHolder ID="imageToolsScripts" runat="server" EnableViewState="False" />--%>
+<asp:PlaceHolder ID="exifScripts" runat="server" EnableViewState="False" />
+
 <style>
     .flex-container {
         display: flex;
         flex-wrap: wrap;
     }
 </style>
+
+<script runat="server">
+
+    Sub AttachCustomHeader(ByVal CustomHeader As String)
+        Dim HtmlHead As HtmlHead = Page.FindControl("Head")
+        If Not (HtmlHead Is Nothing) Then
+            HtmlHead.Controls.Add(New LiteralControl(CustomHeader))
+        End If
+    End Sub
+</script>
+
+<script type="text/javascript" src='<%= ResolveUrl("JS/compress.js") %>'></script>
+
+<script type="text/javascript" src="//cdn.jsdelivr.net/npm/gasparesganga-jquery-loading-overlay@2.1.6/dist/loadingoverlay.min.js"></script>
+<%--<script type="text/javascript" src="//cdn.jsdelivr.net/gh/brbjr1/cdn/js/201804170900/loadingoverlay_progress.js"></script>--%>
+
+<script language="javascript" type="text/javascript">
+    const compress = new Compress()
+
+    function addElement(parentId, elementTag, elementId, html) {
+        // Adds an element to the document
+        var p = document.getElementById(parentId);
+        var newElement = document.createElement(elementTag);
+        newElement.setAttribute('id', elementId);
+        newElement.innerHTML = html;
+        p.appendChild(newElement);
+    }
+
+    var selected = [];
+
+    function loadpreview() {
+        $.LoadingOverlay("show");
+        $('#pdiv').html('');
+        //selected = [];
+
+        var files = $('#<%=fupFile.ClientID %>')[0].files;
+        var fileListAsArray = Array.from(files)
+        for (var i = fileListAsArray.length - 1; i >= 0; i--)
+        {
+            if (fileListAsArray[i].type !== "image/jpg"
+                && fileListAsArray[i].type !== "image/jpeg"
+            && fileListAsArray[i].type !== "image/png"
+            && fileListAsArray[i].type !== "image/gif")
+            {
+                fileListAsArray.splice(i,1);
+            }
+        }
+
+        compress.compress(fileListAsArray, {
+            size: 2, // the max size in MB, defaults to 2MB
+            quality: .75, // the quality of the image, max is 1,
+            maxWidth: 1024, // the max width of the output image, defaults to 1920px
+            maxHeight: 768, // the max height of the output image, defaults to 1920px
+            resize: true, // defaults to true, set false if you do not want to resize the image width and height
+        }).then((conversions) => {
+
+           var fu = document.getElementById('<%=fupFile.ClientID %>');
+            if (fu != null) {
+                document.getElementById('<%=fupFile.ClientID %>').outerHTML = fu.outerHTML;
+            }
+
+            for (var i = 0; i < conversions.length; i++) {
+                selected.push(conversions[i]);
+            }
+            for (var i = 0; i < selected.length; i++) {
+
+                const output = selected[i];
+                addElement('pdiv', 'span', 'simage' + i, '<img style="max-width: 120px;max-height: 120px;" alt="" data-sindex="'+i+'" id="image' + i + '" src="' + output.prefix + output.data + '">');
+                
+            }
+            HideSpinner();
+        })
+    }
+
+    function ShowSpinner()
+    {
+        $.LoadingOverlay("show", {image: "",progress: true});
+    }
+
+    function HideSpinner()
+    {
+        $.LoadingOverlay('hide', true);
+    }
+
+    function StartUpload()
+    {
+        if (selected.length > 0)
+        {
+            ShowSpinner();return UploadFiles(0, Math.round(100 / selected.length));
+        }
+        else
+        {
+            alert('Plese select files to upload!');
+        }
+        return false;
+    }
+
+    
+    function UploadFiles(lastpercent, percentcunk)
+    {
+        var data = new FormData();
+        var newpercent = lastpercent + percentcunk;
+		if (newpercent > 100)
+		{
+			newpercent = 100;
+		}
+
+        if (selected.length > 0)
+        {
+            $.LoadingOverlay("progress", newpercent);
+
+            var myphoto = selected.pop();
+            data.append("FileName", myphoto.alt);
+            data.append("ContentType", myphoto.ext);
+            data.append("Fdata", myphoto.data);
+            data.append("AlbumID", '<%= Request("AlbumID") %>');
+            data.append("TabID", '<%= Request("TabID") %>');
+            data.append("ModuleID", '<%=Me.ModuleID%>');
+            data.append("BatchID", '<%=Me.litBatchID.Value%>');
+
+            $.ajax({
+                type: "POST",
+                url: "<%= GetUploadUrl() %>",
+                contentType: false,
+                processData: false,
+                data: data,
+                success: function (serverData) {
+                    console.log(serverData);
+
+                    if (serverData == "" || serverData == "-1" || serverData == "-2" || serverData == "-3") {
+                        switch (serverData) {
+                            case "":
+                                alert("An error has occurred. Please see the administrator event log.");
+                                break;
+
+                            case "-1":
+                                alert("An error has occurred. File limit exceeded on portal.");
+                                break;
+
+                            case "-2":
+                                alert("An error has occurred. Unable to authenticate.");
+                                break;
+
+                            case "-3":
+                                alert("An error has occurred. Please see the administrator event log.");
+                                break;
+                        }
+                    }
+
+                    if (selected.length > 0) 
+                    {
+                        UploadFiles(newpercent, percentcunk);
+                    }
+                    else
+                    {
+                        //HideSpinner();
+                        console.log('Upload completed.');
+                        document.getElementById("<%=cmdNext2.ClientID %>").click();
+                    }
+                }
+            });
+        }
+        return false;
+    }
+</script>
+
+
 <div align="left">
     <table cellspacing="0" cellpadding="0" width="600" summary="Wizard Design Table">
         <tr>
@@ -82,19 +255,49 @@
 <asp:Panel ID="pnlStep2" runat="server">
     <asp:HiddenField ID="litBatchID" runat="server" />
     <div>
-        <asp:FileUpload ID="fupFile" runat="server" AllowMultiple="true" />
-        <asp:Button runat="server" ID="btnUploadFiles" OnClick="btnUploadFiles_OnClick" resourcekey="btnUploadFiles" />
+        <asp:FileUpload ID="fupFile" runat="server" AllowMultiple="true" accept=".jpg, .jpeg, .png, .gif" ClientIDMode="Static" onchange="loadpreview()" />
+        <asp:RegularExpressionValidator ID="rexp" runat="server" ControlToValidate="fupFile"
+            ErrorMessage="Only .gif, .jpg, .png and .jpeg"
+            ValidationExpression="(.*\.([Gg][Ii][Ff])|.*\.([Jj][Pp][Gg])|.*\.([pP][nN][gG])$)">
+
+        </asp:RegularExpressionValidator>
+        <asp:Button runat="server" ID="btnUploadFiles"
+            UseSubmitBehaviour="false" OnClick="btnUploadFiles_OnClick" resourcekey="btnUploadFiles" Visible="False" />
+
+        <asp:Button runat="server" ID="Button1" OnClientClick="ShowSpinner();return UploadFiles(0);" UseSubmitBehaviour="false" resourcekey="btnUploadFiles" Visible="False" />
+
+        <div style="margin-top: 20px;" id="pdiv" />
+      
     </div>
-     <div class="flex-container">
+    <br />
+    <br />
+    <div class="flex-container">
         <asp:Repeater runat="server" ID="addedPhotosRepeater" EnableViewState="True" OnItemDataBound="addedPhotosRepeater_OnItemDataBound" OnItemCommand="addedPhotosRepeater_ItemCommand">
             <ItemTemplate>
-                <div>
-                    <asp:Image runat="server" ID="addedPhoto" />
-                    <br />
-                    <span style="align-content: center">
-                        <asp:LinkButton ID="cmdrotate" runat="server" CssClass="CommandButton" Text="Rotate 90" BorderStyle="none" CausesValidation="false"></asp:LinkButton></span>
-                    
-                </div>
+                <table class="photo-frame">
+                    <tbody>
+                        <tr>
+                            <td class="topx--"></td>
+                            <td class="top-x-"></td>
+                            <td class="top--x"></td>
+                        </tr>
+                        <tr>
+                            <td class="midx--"></td>
+                            <td valign="top">
+                                <asp:Image runat="server" ID="addedPhoto" CssClass="photo_198" />
+                                <span style="align-content: center">
+                                    <asp:LinkButton ID="cmdrotate" runat="server" CssClass="CommandButton" Text="Rotate" BorderStyle="none" CausesValidation="false"></asp:LinkButton>
+                                </span>
+                            </td>
+                            <td class="mid--x"></td>
+                        </tr>
+                        <tr>
+                            <td class="botx--"></td>
+                            <td class="bot-x-"></td>
+                            <td class="bot--x"></td>
+                        </tr>
+                    </tbody>
+                </table>
             </ItemTemplate>
         </asp:Repeater>
     </div>
@@ -107,13 +310,23 @@
 <asp:Panel ID="pnlWizard" runat="server">
     <div align="center">
         <br />
+
+        
+
         <asp:ImageButton ID="imgPrevious" runat="server" ImageUrl="~\images\lt.gif" ImageAlign="AbsBottom" />
         <asp:LinkButton ID="cmdPrevious" resourcekey="PreviousStep" runat="server" CssClass="CommandButton" Text="Previous"
             BorderStyle="none" />
         <asp:ImageButton ID="imgCancel" runat="server" ImageUrl="~\DesktopModules\SimpleGallery\images\iconCancel.gif" ImageAlign="AbsBottom" CausesValidation="False" Style="padding-left: 20px;" />
         <asp:LinkButton ID="cmdCancel" runat="server" CssClass="CommandButton" ResourceKey="cmdCancel" Text="Cancel" BorderStyle="none" CausesValidation="False" Style="padding-right: 20px;" />
-        <asp:LinkButton ID="cmdNext" resourcekey="NextStep" runat="server" CssClass="CommandButton" Text="Next" BorderStyle="none" />
-        <asp:ImageButton ID="imgNext" runat="server" ImageUrl="~\images\rt.gif" ImageAlign="AbsBottom" />
+        
+        <% If pnlStep2.Visible = True Then%>
+             <asp:LinkButton ID="LinkButton1" OnClientClick="StartUpload(); return false;" UseSubmitBehaviour="false" resourcekey="NextStep" runat="server" CssClass="CommandButton" Text="Next" BorderStyle="none" />
+             <asp:ImageButton ID="ImageButton1" OnClientClick="StartUpload(); return false;" UseSubmitBehaviour="false" runat="server" ImageUrl="~\images\rt.gif" ImageAlign="AbsBottom" />
+            <span style="display:none"><asp:Button ID="cmdNext2" runat="server" Text="Next2" /></span>
+           <% Else %>  
+            <asp:LinkButton ID="cmdNext" resourcekey="NextStep" runat="server" CssClass="CommandButton" Text="Next" BorderStyle="none" />
+            <asp:ImageButton ID="imgNext" runat="server" ImageUrl="~\images\rt.gif" ImageAlign="AbsBottom" />
+          <% End If %>
     </div>
 </asp:Panel>
 

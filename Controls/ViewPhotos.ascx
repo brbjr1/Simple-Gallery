@@ -67,7 +67,10 @@ function openScreenWin(winName, loc, width, height){					// Opens a new window
 </asp:datalist>
 
 <asp:Panel ID="pnlPaging" Runat="server" HorizontalAlign="Center" visible="false" EnableViewState="False">
-	<asp:HyperLink ID="lnkPrev" Runat="server" CssClass="CommandButton"><< Prev</asp:HyperLink>	&nbsp;&nbsp;	<asp:label id="lblCurrentPage" runat="server" cssclass="Normal"></asp:label>	&nbsp;&nbsp;
+	<asp:HyperLink ID="lnkPrev" Runat="server" CssClass="CommandButton"><< Prev</asp:HyperLink>
+	&nbsp;&nbsp;
+	<asp:label id="lblCurrentPage" runat="server" cssclass="Normal"></asp:label>
+	&nbsp;&nbsp;
 	<asp:HyperLink ID="lnkNext" Runat="server" CssClass="CommandButton">Next >></asp:HyperLink>
 </asp:Panel>
 

@@ -1,7 +1,7 @@
 <%@ Control Language="vb" AutoEventWireup="false" CodeBehind="EditPhotos.ascx.vb" Inherits="Ventrian.SimpleGallery.Controls.EditPhotos" %>
 <%@ Register TagPrefix="dnn" TagName="Label" Src="~/controls/LabelControl.ascx" %>
 <style>
-.photo-frame .topx-- { background-image: url(<%= ResolveUrl("../images/borders/" & BorderStyle & "/frame-topx--.gif") %>); }
+.photo-frame .topx-- { background-image: url(<%= ResolveUrl("../images/borders/" & Me.GallerySettings.BorderStyle & "/frame-topx--.gif") %>); }
 .photo-frame .top-x- { background-image: url(<%= ResolveUrl("../images/borders/" & BorderStyle & "/frame-top-x-.gif") %>); }
 .photo-frame .top--x { background-image: url(<%= ResolveUrl("../images/borders/" & BorderStyle & "/frame-top--x.gif") %>); }
 .photo-frame .midx-- { background-image: url(<%= ResolveUrl("../images/borders/" & BorderStyle & "/frame-midx--.gif") %>); }
