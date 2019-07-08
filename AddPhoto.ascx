@@ -14,6 +14,28 @@
         display: flex;
         flex-wrap: wrap;
     }
+    .img-container {
+      display: inline;
+      position: relative;
+      margin: 5px;
+    }
+    .close {
+      position: absolute;
+      right: 0;
+    }
+
+    .rotate 
+     {
+      position: absolute;
+      left: 0;
+    }
+
+    .iborder {
+      padding:5px;
+      border:8px solid #999999;
+      background-color: #e6e6e6;
+      }
+  
 </style>
 
 <script runat="server">
@@ -26,10 +48,94 @@
     End Sub
 </script>
 
+<script type="text/javascript"> 
+    var ua = window.navigator.userAgent; var msie = ua.indexOf("MSIE "); if (msie > 0 || !!navigator.userAgent.match(/Trident.*rv\:11\./))
+        document.write('<script src="//cdn.jsdelivr.net/npm/es6-promise@4/dist/es6-promise.auto.min.js"><\/scr' + 'ipt>'); 
+</script> 
+<%--<script src="//cdnjs.cloudflare.com/ajax/libs/bluebird/3.3.5/bluebird.min.js"></script>--%>
+<%--<script src="//cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"></script>--%>
 <script type="text/javascript" src='<%= ResolveUrl("JS/compress.js") %>'></script>
-
 <script type="text/javascript" src="//cdn.jsdelivr.net/npm/gasparesganga-jquery-loading-overlay@2.1.6/dist/loadingoverlay.min.js"></script>
-<%--<script type="text/javascript" src="//cdn.jsdelivr.net/gh/brbjr1/cdn/js/201804170900/loadingoverlay_progress.js"></script>--%>
+
+<script language="javascript" type="text/javascript">
+if (!Array.from) {
+  Array.from = (function () {
+    var toStr = Object.prototype.toString;
+    var isCallable = function (fn) {
+      return typeof fn === 'function' || toStr.call(fn) === '[object Function]';
+    };
+    var toInteger = function (value) {
+      var number = Number(value);
+      if (isNaN(number)) { return 0; }
+      if (number === 0 || !isFinite(number)) { return number; }
+      return (number > 0 ? 1 : -1) * Math.floor(Math.abs(number));
+    };
+    var maxSafeInteger = Math.pow(2, 53) - 1;
+    var toLength = function (value) {
+      var len = toInteger(value);
+      return Math.min(Math.max(len, 0), maxSafeInteger);
+    };
+
+    // The length property of the from method is 1.
+    return function from(arrayLike/*, mapFn, thisArg */) {
+      // 1. Let C be the this value.
+      var C = this;
+
+      // 2. Let items be ToObject(arrayLike).
+      var items = Object(arrayLike);
+
+      // 3. ReturnIfAbrupt(items).
+      if (arrayLike == null) {
+        throw new TypeError('Array.from requires an array-like object - not null or undefined');
+      }
+
+      // 4. If mapfn is undefined, then let mapping be false.
+      var mapFn = arguments.length > 1 ? arguments[1] : void undefined;
+      var T;
+      if (typeof mapFn !== 'undefined') {
+        // 5. else
+        // 5. a If IsCallable(mapfn) is false, throw a TypeError exception.
+        if (!isCallable(mapFn)) {
+          throw new TypeError('Array.from: when provided, the second argument must be a function');
+        }
+
+        // 5. b. If thisArg was supplied, let T be thisArg; else let T be undefined.
+        if (arguments.length > 2) {
+          T = arguments[2];
+        }
+      }
+
+      // 10. Let lenValue be Get(items, "length").
+      // 11. Let len be ToLength(lenValue).
+      var len = toLength(items.length);
+
+      // 13. If IsConstructor(C) is true, then
+      // 13. a. Let A be the result of calling the [[Construct]] internal method 
+      // of C with an argument list containing the single item len.
+      // 14. a. Else, Let A be ArrayCreate(len).
+      var A = isCallable(C) ? Object(new C(len)) : new Array(len);
+
+      // 16. Let k be 0.
+      var k = 0;
+      // 17. Repeat, while k < len… (also steps a - h)
+      var kValue;
+      while (k < len) {
+        kValue = items[k];
+        if (mapFn) {
+          A[k] = typeof T === 'undefined' ? mapFn(kValue, k) : mapFn.call(T, kValue, k);
+        } else {
+          A[k] = kValue;
+        }
+        k += 1;
+      }
+      // 18. Let putStatus be Put(A, "length", len, true).
+      A.length = len;
+      // 20. Return A.
+      return A;
+    };
+  }());
+}
+</script>
 
 <script language="javascript" type="text/javascript">
     const compress = new Compress()
@@ -47,7 +153,7 @@
 
     function loadpreview() {
         $.LoadingOverlay("show");
-        $('#pdiv').html('');
+        //$('#pdiv').html('');
         //selected = [];
 
         var files = $('#<%=fupFile.ClientID %>')[0].files;
@@ -63,30 +169,110 @@
             }
         }
 
+        function create_UUID(){
+            var dt = new Date().getTime();
+            var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = (dt + Math.random()*16)%16 | 0;
+                dt = Math.floor(dt/16);
+                return (c=='x' ? r :(r&0x3|0x8)).toString(16);
+            });
+            return uuid;
+        }
+
         compress.compress(fileListAsArray, {
             size: 2, // the max size in MB, defaults to 2MB
             quality: .75, // the quality of the image, max is 1,
             maxWidth: 1024, // the max width of the output image, defaults to 1920px
             maxHeight: 768, // the max height of the output image, defaults to 1920px
             resize: true, // defaults to true, set false if you do not want to resize the image width and height
-        }).then((conversions) => {
+        }).then(function (conversions)
+        {
 
-           var fu = document.getElementById('<%=fupFile.ClientID %>');
+            var fu = document.getElementById('<%=fupFile.ClientID %>');
             if (fu != null) {
                 document.getElementById('<%=fupFile.ClientID %>').outerHTML = fu.outerHTML;
             }
 
             for (var i = 0; i < conversions.length; i++) {
-                selected.push(conversions[i]);
+                var uid = create_UUID();
+                const output = { 'id': uid, 'photo': conversions[i] };
+                selected.push(output);
+                
+                addElement('pdiv', 'span', 'simage' + i, '<div class="img-container"><img class="iborder" style="max-width: 120px;max-height: 120px;" alt="" src="' + output.photo.prefix + output.photo.data + '"><img alt="remove" data-sindex="' + output.id + '" class="close" src="<%= ResolveUrl("images/closeIcon.png")%>" /></div>');
             }
-            for (var i = 0; i < selected.length; i++) {
+          <%--  for (var i = 0; i < selected.length; i++) {
 
                 const output = selected[i];
-                addElement('pdiv', 'span', 'simage' + i, '<img style="max-width: 120px;max-height: 120px;" alt="" data-sindex="'+i+'" id="image' + i + '" src="' + output.prefix + output.data + '">');
-                
-            }
+                //addElement('pdiv', 'span', 'simage' + i, '<div class="img-container"><img alt="rotate" data-sindex="'+output.id+'" class="rotate" src="<%= ResolveUrl("images/rotate.png")%>" /><img class="iborder" style="max-width: 120px;max-height: 120px;" alt="" src="' + output.photo.prefix + output.photo.data + '"><img alt="remove" data-sindex="'+output.id+'" class="close" src="<%= ResolveUrl("images/closeIcon.png")%>" /></div>');
+                addElement('pdiv', 'span', 'simage' + i, '<div class="img-container"><img class="iborder" style="max-width: 120px;max-height: 120px;" alt="" src="' + output.photo.prefix + output.photo.data + '"><img alt="remove" data-sindex="' + output.id + '" class="close" src="<%= ResolveUrl("images/closeIcon.png")%>" /></div>');
+
+            }--%>
             HideSpinner();
-        })
+
+            $('img.close').click(function () {
+                var myindex = $(this).attr('data-sindex');
+                var myimagdiv = $(this).closest('div');
+                var myimagdivistarget = $(myimagdiv).hasClass('img-container');
+                if (myindex !== undefined && myimagdivistarget === true) {
+                    $(myimagdiv).html('');
+                    remove(selected, myindex);
+                }
+            });
+
+            //$('img.rotate').click(function(){
+            //    var myindex = $(this).attr('data-sindex');
+            //    var myimagdiv = $(this).closest('div');
+            //    var myimagdivistarget = $(myimagdiv).hasClass('img-container');
+            //    if (myindex !== undefined && myimagdivistarget === true)
+            //    {
+
+            //       // $(myimagdiv).html('');
+            //        //remove(selected, myindex);
+            //        var myphoto;
+            //        for (var i = selected.length; i--;)
+            //        {
+            //            if (selected[i].id === myindex)
+            //            {
+            //                myphoto = selected[i];
+            //            }
+            //        }
+
+            //         //$(this).closest('div').find('img.iborder').rotate({angle:90});
+
+
+            //       // var newimg = rotateBase64Image(myphoto.photo.prefix + myphoto.photo.data);
+
+            //        //myphoto.photo.data = newimg.substring(myphoto.photo.prefix.length);
+
+            //       // $(this).closest('div').find('img.iborder').attr('src',newimg);
+
+            //        rotateBase64Image(myphoto.photo.prefix + myphoto.photo.data,
+            //            function callback(base64data) {
+            //                $(this).closest('div').find('img.iborder').attr('src',base64data);
+            //            });
+            //    }
+            //});
+        }, function (err) {
+            console.log(err); // Error: "It broke"
+            HideSpinner();
+            alert('Error occured. Try selecting fewer number of images. ' + (err.description !== undefined ? 'Detail: ' + err.description : '' ));
+
+        });
+    }
+
+
+
+   
+
+    function remove(arr, item)
+    {
+        for (var i = arr.length; i--;)
+        {
+            if (arr[i].id === item)
+            {
+                arr.splice(i, 1);
+            }
+        }
     }
 
     function ShowSpinner()
@@ -126,7 +312,8 @@
         {
             $.LoadingOverlay("progress", newpercent);
 
-            var myphoto = selected.pop();
+            var myphoto1 = selected.pop();
+            var myphoto = myphoto1.photo;
             data.append("FileName", myphoto.alt);
             data.append("ContentType", myphoto.ext);
             data.append("Fdata", myphoto.data);
