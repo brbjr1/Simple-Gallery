@@ -1,5 +1,3 @@
-Installs/SimpleGallery.packagefolder/
-
 # The following command works for downloading when using Git for Windows:
 # curl -LOf http://gist.githubusercontent.com/kmorcinek/2710267/raw/.gitignore
 #
@@ -15,6 +13,7 @@ Installs/SimpleGallery.packagefolder/
 *.sln.docstates
 
 # Build results
+[Bb]in/
 [Dd]ebug/
 [Rr]elease/
 x64/
@@ -225,3 +224,5 @@ project.lock.json
 #####
 # End of core ignore list, below put you custom 'per project' settings (patterns or path)
 #####
+.vs/Ventrian.SimpleGallery/v15/.suo
+.vs/Ventrian.SimpleGallery/v15/Server/sqlite3/storage.ide
