@@ -224,9 +224,4 @@ project.lock.json
 #####
 # End of core ignore list, below put you custom 'per project' settings (patterns or path)
 #####
-.vs/Ventrian.SimpleGallery/v15/.suo
-.vs/Ventrian.SimpleGallery/v15/Server/sqlite3/storage.ide
-.vs/Ventrian.SimpleGallery/v15/.suo
-*.ide
-*.ide-shm
-*.ide-wal
+.vs/
