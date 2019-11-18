@@ -6,29 +6,24 @@
 
 Imports System.Drawing
 Imports System.Drawing.Imaging
-Imports System.Drawing.Drawing2D
 Imports System.IO
 
 Imports DotNetNuke.Common
 Imports DotNetNuke.Common.Utilities
 Imports DotNetNuke.Entities.Modules
-Imports DotNetNuke.Entities.Modules.Actions
 Imports DotNetNuke.Entities.Portals
 Imports DotNetNuke.Entities.Tabs
 Imports DotNetNuke.Entities.Users
 Imports DotNetNuke.Security
 Imports DotNetNuke.Security.Roles
-Imports DotNetNuke.Services.Exceptions
 Imports DotNetNuke.Services.FileSystem
-Imports DotNetNuke.Services.Localization
 
 Imports Ventrian.SimpleGallery.Common
 Imports Ventrian.SimpleGallery.Entities
-Imports DotNetNuke.Security.Permissions
 Imports DotNetNuke.Services.Log.EventLog
+Imports DotNetNuke.Security.Permissions
 
 Imports Ventrian.ImageResizer
-Imports System.Reflection
 
 Namespace Ventrian.SimpleGallery
 
@@ -94,7 +89,7 @@ Namespace Ventrian.SimpleGallery
                 If _moduleConfiguration Is Nothing Then
 
                     Dim objModule As New ModuleController
-                    _moduleConfiguration = objModule.GetModule(_moduleID, _tabID)
+                    _moduleConfiguration = objModule.GetModule(_moduleID, _tabID, False)
 
                 End If
 
@@ -111,7 +106,7 @@ Namespace Ventrian.SimpleGallery
 
                     Dim objModuleController As New ModuleController
 
-                    _settings = objModuleController.GetModuleSettings(_moduleID)
+                    _settings = ModuleController.Instance.GetModule(_moduleID, -1, False).ModuleSettings 'objModuleController.GetModuleSettings(_moduleID)
                     _settings = GetTabModuleSettings(_tabModuleID, _settings)
 
                 End If
@@ -143,7 +138,7 @@ Namespace Ventrian.SimpleGallery
 
 #End Region
 
-        Public Class MemoryFile 
+        Public Class MemoryFile
             Inherits HttpPostedFileBase
 
             Private _stream As Stream
@@ -207,8 +202,16 @@ Namespace Ventrian.SimpleGallery
                     _userID = objUser.UserID
                     HttpContext.Current.Items("UserInfo") = objUser
 
+
+
                     Dim objRoleController As New RoleController
-                    roles = objRoleController.GetRolesByUser(_userID, _portalID)
+                    Dim lRoles As IList(Of DotNetNuke.Entities.Users.UserRoleInfo) = objRoleController.GetUserRoles(objUser, True)
+                    Dim _myroles As New ArrayList
+                    For Each role As DotNetNuke.Entities.Users.UserRoleInfo In lRoles
+                        _myroles.Add(role.FullName)
+                    Next
+                    'roles = objRoleController.GetRolesByUser(_userID, _portalID)
+                    roles = _myroles.ToArray()
 
                     Dim strPortalRoles As String = Join(roles, New Char() {";"c})
                     Context.Items.Add("UserRoles", ";" + strPortalRoles + ";")
@@ -256,14 +259,14 @@ Namespace Ventrian.SimpleGallery
                         Dim objRole As RoleInfo = objRoleController.GetRoleByName(_portalID, role)
 
                         If Not (objRole Is Nothing) Then
-                            Dim objUsers As ArrayList = objRoleController.GetUserRolesByRoleName(_portalID, objRole.RoleName)
-                            For Each objUser As UserRoleInfo In objUsers
+                            Dim objUsers As IList(Of DotNetNuke.Entities.Users.UserInfo) = objRoleController.GetUsersByRole(_portalID, role)
+                            For Each objUser As UserInfo In objUsers
                                 If (userList.Contains(objUser.UserID) = False) Then
                                     Dim objUserController As UserController = New UserController
                                     Dim objSelectedUser As UserInfo = objUserController.GetUser(_portalID, objUser.UserID)
                                     If Not (objSelectedUser Is Nothing) Then
-                                        If (objSelectedUser.Membership.Email.Length > 0) Then
-                                            userList.Add(objUser.UserID, objSelectedUser.Membership.Email)
+                                        If (objSelectedUser.Email.Length > 0) Then
+                                            userList.Add(objUser.UserID, objSelectedUser.Email)
                                         End If
                                     End If
                                 End If
@@ -353,7 +356,8 @@ Namespace Ventrian.SimpleGallery
                 Return True
             End If
 
-            If (IsInRoles(ModuleConfiguration.AuthorizedEditRoles) Or IsInRoles(Tab.AdministratorRoles) Or IsInRoles(Portal.AdministratorRoleName)) Then
+            'If (IsInRoles(ModuleConfiguration.AuthorizedEditRoles) Or IsInRoles(Tab.AdministratorRoles) Or IsInRoles(Portal.AdministratorRoleName)) Then
+            If HasEditPermissions() Then
                 Return True
             End If
 
@@ -387,10 +391,12 @@ Namespace Ventrian.SimpleGallery
 
         Public Function HasEditPermissions() As Boolean
 
-            Return _
-                (PortalSecurity.IsInRoles(ModuleConfiguration.AuthorizedEditRoles) = True) Or _
-                (PortalSecurity.IsInRoles(Tab.AdministratorRoles) = True) Or _
-                (PortalSecurity.IsInRoles(Portal.AdministratorRoleName) = True)
+            Return ModulePermissionController.CanEditModuleContent(ModuleConfiguration)
+
+            'Return _
+            '    (PortalSecurity.IsInRoles(ModuleConfiguration.AuthorizedEditRoles) = True) Or
+            '    (PortalSecurity.IsInRoles(Tab.AdministratorRoles) = True) Or
+            '    (PortalSecurity.IsInRoles(Portal.AdministratorRoleName) = True)
 
         End Function
 
@@ -410,7 +416,7 @@ Namespace Ventrian.SimpleGallery
 
         Private Function IsInRole(ByVal role As String) As Boolean
 
-            Dim objUserInfo As UserInfo = UserController.GetCurrentUserInfo
+            Dim objUserInfo As UserInfo = UserController.Instance.GetCurrentUserInfo()
             Dim context As HttpContext = HttpContext.Current
 
             If (role <> "" AndAlso Not role Is Nothing AndAlso ((context.Request.IsAuthenticated = False And role = glbRoleUnauthUserName))) Then
@@ -434,13 +440,13 @@ Namespace Ventrian.SimpleGallery
 
             If Not roles Is Nothing Then
                 Dim context As HttpContext = HttpContext.Current
-                Dim objUserInfo As UserInfo = UserController.GetCurrentUserInfo
+                Dim objUserInfo As UserInfo = UserController.Instance.GetCurrentUserInfo()
                 Dim role As String
 
                 For Each role In roles.Split(New Char() {";"c})
-                    If objUserInfo.IsSuperUser Or (role <> "" AndAlso Not role Is Nothing AndAlso _
-                     (role = glbRoleAllUsersName Or _
-                     IsInRole(role) = True _
+                    If objUserInfo.IsSuperUser Or (role <> "" AndAlso Not role Is Nothing AndAlso
+                     (role = glbRoleAllUsersName Or
+                     IsInRole(role) = True
                      )) Then
                         Return True
                     End If
@@ -534,17 +540,17 @@ Namespace Ventrian.SimpleGallery
                     Response.End()
                 End If
 
-                Dim Fdata As String
+                Dim Fdata As String = ""
                 If (Request("Fdata") <> "") Then
                     Fdata = Request("Fdata")
                 End If
 
-                Dim myFileName As String
+                Dim myFileName As String = ""
                 If (Request("FileName") <> "") Then
                     myFileName = Request("FileName")
                 End If
 
-                Dim myContentType As String
+                Dim myContentType As String = ""
                 If (Request("ContentType") <> "") Then
                     myContentType = Request("ContentType")
                 End If
@@ -744,24 +750,34 @@ Namespace Ventrian.SimpleGallery
 
                         ' Update DNN File Meta Info
                         Dim strFileName As String = Path.GetFileName(filePath & fileName)
-                        Dim strFolderpath As String = GetSubFolderPath(filePath & fileName)
-                        Dim finfo As New System.IO.FileInfo(filePath & fileName)
+                        Dim strFolderpath As String = GetSubFolderPath(filePath & fileName, _portalID)
+                        'Dim finfo As New System.IO.FileInfo(filePath & fileName)
 
-                        Dim strContentType As String = ""
-                        Dim strExtension As String = Path.GetExtension(fileName).Replace(".", "")
+                        'Dim strContentType As String = ""
+                        'Dim strExtension As String = Path.GetExtension(fileName).Replace(".", "")
 
-                        Select Case strExtension
-                            Case "jpg", "jpeg" : strContentType = "image/jpeg"
-                            Case "gif" : strContentType = "image/gif"
-                            Case "png" : strContentType = "image/png"
-                            Case Else : strContentType = "application/octet-stream"
-                        End Select
+                        'Select Case strExtension
+                        '    Case "jpg", "jpeg" : strContentType = "image/jpeg"
+                        '    Case "gif" : strContentType = "image/gif"
+                        '    Case "png" : strContentType = "image/png"
+                        '    Case Else : strContentType = "application/octet-stream"
+                        'End Select
+
+                        'Dim folderID As Integer = Null.NullInteger
+                        'Dim objFolderController As New FolderController
+                        'Dim folder As FolderInfo = objFolderController.GetFolder(_portalID, strFolderpath, False)
+                        'If (folder Is Nothing) Then
+                        '    folderID = objFolderController.AddFolder(_portalID, strFolderpath)
+                        'Else
+                        '    folderID = folder.FolderID
+                        'End If
 
                         Dim folderID As Integer = Null.NullInteger
-                        Dim objFolderController As New FolderController
-                        Dim folder As FolderInfo = objFolderController.GetFolder(_portalID, strFolderpath, False)
+                        'Dim objFolderController As New FolderController
+                        Dim folder As FolderInfo = FolderManager.Instance.GetFolder(_portalID, strFolderpath) 'objFolderController.GetFolder(_portalID, strFolderpath, False)
                         If (folder Is Nothing) Then
-                            folderID = objFolderController.AddFolder(_portalID, strFolderpath)
+                            'folderID = objFolderController.AddFolder(_portalID, strFolderpath)
+                            folder = FolderManager.Instance.AddFolder(_portalID, strFolderpath)
                         Else
                             folderID = folder.FolderID
                         End If
@@ -778,10 +794,10 @@ Namespace Ventrian.SimpleGallery
                         '    FileSystemUtils.SetFolderPermission(_portalID, folderID, objPermission.PermissionID, objPermission.RoleID, objPermission.UserID, parentFolderPath)
                         'Next
 
-                        If (strFileName.IndexOf("'") = -1) Then
-                            Dim objFiles As New FileController
-                            objFiles.AddFile(_portalID, strFileName, strExtension, finfo.Length, width, height, strContentType, strFolderpath, folderID, True)
-                        End If
+                        'If (strFileName.IndexOf("'") = -1) Then
+                        '    Dim objFiles As New FileController
+                        '    objFiles.AddFile(_portalID, strFileName, strExtension, finfo.Length, width, height, strContentType, strFolderpath, folderID, True)
+                        'End If
 
                     Catch
                     End Try
