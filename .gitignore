@@ -226,3 +226,7 @@ project.lock.json
 #####
 .vs/Ventrian.SimpleGallery/v15/.suo
 .vs/Ventrian.SimpleGallery/v15/Server/sqlite3/storage.ide
+.vs/Ventrian.SimpleGallery/v15/.suo
+*.ide
+*.ide-shm
+*.ide-wal
