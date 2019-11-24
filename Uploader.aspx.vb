@@ -208,7 +208,7 @@ Namespace Ventrian.SimpleGallery
                     Dim lRoles As IList(Of DotNetNuke.Entities.Users.UserRoleInfo) = objRoleController.GetUserRoles(objUser, True)
                     Dim _myroles As New ArrayList
                     For Each role As DotNetNuke.Entities.Users.UserRoleInfo In lRoles
-                        _myroles.Add(role.FullName)
+                        _myroles.Add(role.RoleName)
                     Next
                     'roles = objRoleController.GetRolesByUser(_userID, _portalID)
                     roles = _myroles.ToArray()
